@@ -14,6 +14,8 @@ export class Sfx{
     const s=c.createBufferSource();s.buffer=this.noise;const f=c.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;
     const g=c.createGain(),t=c.currentTime;g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
     s.connect(f).connect(g).connect(this.master);s.start(t);s.stop(t+dur+.05);}
+  cannon(){this.burst({dur:.5,freq:260,q:.6,gain:.9,type:'lowpass'});this.burst({dur:.15,freq:2000,q:.5,gain:.3,type:'highpass'});}
+  ping(){this.burst({dur:.06,freq:3200+Math.random()*1500,q:3,gain:.3,type:'bandpass'});}
   shot(){this.burst({dur:.12,freq:1500,q:.7,gain:.35,type:'highpass'});}
   explosion(big=false){const c=this.ctx;if(!c||!this.enabled)return;
     this.burst({dur:big?1.6:.8,freq:big?180:320,q:.5,gain:big?1:.7,type:'lowpass'});

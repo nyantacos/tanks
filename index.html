@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ルノー FT 3Dモデル</title>
+<title>tanks — ルノー FT / 九七式 チハ 3Dシミュレーション</title>
 <style>
 :root{
   --bg:#dcd8ce; --ink:#23221f; --mute:#6b675e; --line:rgba(35,34,31,.16);
@@ -24,7 +24,10 @@ canvas:active{cursor:grabbing}
 .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
 h1{margin:6px 0 2px;font-size:28px;line-height:1.1;font-weight:700;letter-spacing:.02em}
 .sub{font-size:13px;color:var(--mute)}
-.hp{margin-top:14px;width:260px;pointer-events:none}
+.veh{margin-top:12px;display:flex;gap:6px;pointer-events:auto}
+.sp{margin:0 0 4px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px}
+.sp dt{color:var(--mute)} .sp dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.hp{margin-top:12px;width:260px;pointer-events:none}
 .hp .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-bottom:4px}
 .hp .lbl b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
 .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
@@ -73,11 +76,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
-<canvas id="c" aria-label="ルノーFT戦車の3Dシミュレーション。ドラッグで視点回転、WASDで走行"></canvas>
+<canvas id="c" aria-label="戦車の3Dシミュレーション。ドラッグで視点回転、WASDで走行"></canvas>
 <div class="hud">
-  <div class="eyebrow">Char léger Renault FT · 1917</div>
-  <h1>ルノー FT 軽戦車</h1>
-  <div class="sub">機関銃型(char mitrailleur)・ベルリエ八角砲塔</div>
+  <div class="eyebrow" id="vEyebrow"></div>
+  <h1 id="vName"></h1>
+  <div class="sub" id="vSub"></div>
+  <div class="veh"><button data-veh aria-pressed="true">ルノー FT</button><button data-veh>九七式 チハ</button></div>
   <div class="hp">
     <div class="lbl"><span>耐久力 · <span id="stat">待機</span></span><b id="hpNum">100 / 100</b></div>
     <div class="bar"><div id="hpBar"></div></div>
@@ -86,17 +90,23 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <div id="dmg"></div>
 </div>
 <aside class="spec">
-  <h2>キー操作</h2>
+  <h2>諸元</h2>
+  <dl class="sp" id="specs"></dl>
+  <h2 style="margin-top:12px">キー操作</h2>
   <div class="keys">
     <div><kbd>W</kbd><kbd>S</kbd></div><span>前進 / 後退</span>
     <div><kbd>A</kbd><kbd>D</kbd></div><span>左旋回 / 右旋回</span>
     <div><kbd>Q</kbd><kbd>E</kbd></div><span>砲塔 左 / 右</span>
-    <div><kbd>R</kbd><kbd>F</kbd></div><span>機銃 上 / 下</span>
-    <div><kbd>Space</kbd></div><span>発砲(押し続けで連射)</span>
-    <div><kbd>H</kbd></div><span>被弾(敵弾が飛来)</span>
+    <div><kbd>R</kbd><kbd>F</kbd></div><span id="keyElev">機銃 上 / 下</span>
+    <div><kbd>Space</kbd></div><span id="keyFire">発砲(押し続けで連射)</span>
+    <div><kbd>G</kbd></div><span id="keyMG">機銃 発砲</span>
+    <div class="mgOnly"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></div><span class="mgOnly">車体機銃の向き</span>
+    <div><kbd>H</kbd></div><span>砲弾 被弾(大ダメージ)</span>
+    <div><kbd>J</kbd></div><span>機銃弾 被弾(ほぼ無傷)</span>
     <div><kbd>X</kbd></div><span>敵砲撃 自動 ON/OFF</span>
     <div><kbd>C</kbd></div><span>迷彩 切替</span>
     <div><kbd>V</kbd></div><span>視点 切替</span>
+    <div><kbd>T</kbd></div><span>車両 切替</span>
     <div><kbd>Enter</kbd></div><span>リセット</span>
   </div>
 </aside>
@@ -107,11 +117,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
       <button data-k="left" aria-label="左旋回">◀</button><button data-k="back" aria-label="後退">▼</button><button data-k="right" aria-label="右旋回">▶</button></div>
     <div class="sep"></div><span class="lbl">砲塔</span>
     <button data-k="turL">◀ 左</button><button data-k="turR">右 ▶</button>
-    <div class="sep"></div><span class="lbl">機銃</span>
+    <div class="sep"></div><span class="lbl" id="lblElev">機銃</span>
     <button data-k="elvUp">▲ 上</button><button data-k="elvDn">▼ 下</button>
     <div class="sep"></div>
-    <button class="fire" data-k="fire">● 発砲</button>
-    <button class="danger" id="bHit">被弾</button>
+    <button class="fire" data-k="fire" id="bFire">● 発砲</button>
+    <button class="fire mgOnly" data-k="fireMG">● 機銃</button>
+    <button class="danger" id="bHit">砲弾被弾</button>
+    <button class="danger" id="bHitMG">機銃被弾</button>
     <button id="tAuto" aria-pressed="false">敵砲撃 自動</button>
     <button id="bReset">リセット</button>
   </div>

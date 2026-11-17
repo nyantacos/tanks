@@ -1,38 +1,22 @@
-// model.js — ルノーFTの形状定義(車体・砲塔・機銃・車輪・履帯リンク)
+// model.js — ルノーFT(機関銃型)の形状定義と車両仕様
 import {M,ID,tr,sc,rx,ry,rz,AZ,AX} from "./math.js";
 import {Geo,box,cyl,sphere,loft,rivet,rivLine,plate} from "./geometry.js";
+import {trackPath} from "./track.js";
 
 export const C={paint:[.42,.45,.34],steel:[.20,.20,.20],dark:[.045,.045,.045],track:[.24,.21,.19],
   wood:[.47,.32,.19],rust:[.37,.23,.15],gun:[.13,.13,.14]};
 
+export function buildFT(){
 /* ---------- layout constants ---------- */
-export const IDL={x:1.5,y:.60,r:.46}, SPR={x:-1.55,y:.42,r:.33}, RWY=.155, RWR=.09, ZT=.70;
-export const RWX=[...Array(9).keys()].map(i=>-1.13+i*.26);
-export const TUR={x:.15,y:1.45}, TH=.46;
+const IDL={x:1.5,y:.60,r:.46}, SPR={x:-1.55,y:.42,r:.33}, RWY=.155, RWR=.09, ZT=.70;
+const RWX=[...Array(9).keys()].map(i=>-1.13+i*.26);
+const TUR={x:.15,y:1.45}, TH=.46;
 
-/* ---------- track path (convex hull of wheel circles) ---------- */
-export const path=(()=>{const pts=[];
-  for(const c of[IDL,SPR,{x:RWX[0],y:RWY,r:.125},{x:RWX[8],y:RWY,r:.125}])
-    for(let i=0;i<96;i++){const a=2*Math.PI*i/96;pts.push([c.x+c.r*Math.cos(a),c.y+c.r*Math.sin(a)]);}
-  pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
-  const lo=[],up=[];
-  for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
-  for(const p of pts.slice().reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
-  const h=lo.slice(0,-1).concat(up.slice(0,-1));          // counter-clockwise
-  const cum=[0];let top=null,best=0;
-  for(let i=0;i<h.length;i++){const a=h[i],b=h[(i+1)%h.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);cum.push(cum[i]+l);
-    if((a[1]+b[1])/2>.7&&l>best){best=l;top=[a,b];}}
-  const len=cum[h.length];
-  const at=s=>{s=((s%len)+len)%len;let i=0;while(cum[i+1]<s)i++;const a=h[i],b=h[(i+1)%h.length],t=(s-cum[i])/(cum[i+1]-cum[i]);
-    return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];};
-  const topY=x=>top[0][1]+(top[1][1]-top[0][1])*(x-top[0][0])/(top[1][0]-top[0][0]);
-  const slope=(top[1][1]-top[0][1])/(top[1][0]-top[0][0]);
-  return{len,at,topY,slope};})();
-export const NL=Math.round(path.len/.235), PITCH=path.len/NL;
+const path=trackPath([IDL,SPR,{x:RWX[0],y:RWY,r:.125},{x:RWX[8],y:RWY,r:.125}]);
+const NL=Math.round(path.len/.235), PITCH=path.len/NL;
 
 /* ---------- HULL ---------- */
-export const hull=new Geo(), W=.51;
+const hull=new Geo(), W=.51;
 loft(hull,ID,[[-1.80,.90],[-1.72,.55],[-1.45,.42],[1.2,.42],[1.2,1.36],[1.05,1.45],[-.45,1.45],[-.62,1.30],[-1.70,1.02]],W,C.paint);
 loft(hull,ID,[[1.2,.42,.51],[1.62,.62,.40],[1.80,.88,.32],[1.80,1.00,.32],[1.2,1.36,.51]],W,C.paint);
 { // glacis: driver's doors, top flap, hinges, slits
@@ -115,13 +99,13 @@ for(const s of[-1,1]){const z=s*ZT;
 cyl(hull,tr(TUR.x,TUR.y-.03,0),.50,.50,.06,32,C.dark,0);
 
 /* ---------- TURRET (Berliet octagonal, riveted) ---------- */
-export const tur=new Geo(), CA=Math.cos(Math.PI/8), SA=Math.sin(Math.PI/8);
-export const tr_r=y=>.56-.04*y/TH;
+const tur=new Geo(), CA=Math.cos(Math.PI/8), SA=Math.sin(Math.PI/8);
+const tr_r=y=>.56-.04*y/TH;
 cyl(tur,tr(0,TH/2,0),.56,.52,TH,8,C.paint,1,{flat:true,phase:Math.PI/8});
 cyl(tur,tr(0,TH+.0125,0),.535,.51,.025,8,C.paint,1,{flat:true,phase:Math.PI/8});
 cyl(tur,tr(0,.012,0),.585,.585,.03,32,C.paint);
-export const face=(i,u,y,out=0)=>{const th=i*Math.PI/4,a=tr_r(y)*CA+out;return[Math.cos(th)*a-Math.sin(th)*u,y,Math.sin(th)*a+Math.cos(th)*u];};
-export const faceM=(i,u,y,out)=>{const p=face(i,u,y,out);return M(tr(p[0],p[1],p[2]),ry(-i*Math.PI/4));};
+const face=(i,u,y,out=0)=>{const th=i*Math.PI/4,a=tr_r(y)*CA+out;return[Math.cos(th)*a-Math.sin(th)*u,y,Math.sin(th)*a+Math.cos(th)*u];};
+const faceM=(i,u,y,out)=>{const p=face(i,u,y,out);return M(tr(p[0],p[1],p[2]),ry(-i*Math.PI/4));};
 for(let i=0;i<8;i++){
   for(const s of[-1,1])for(let k=0;k<6;k++){const y=.07+k*.064;rivet(tur,ID,face(i,s*(tr_r(y)*SA-.035),y,.003));}
   for(const y of[.045,.425])for(let k=0;k<3;k++)rivet(tur,ID,face(i,(k-1)*.085,y,.003));
@@ -143,8 +127,8 @@ box(tur,faceM(4,.03,.225,.026),.016,.02,.07,C.steel,0);
   for(let k=0;k<12;k++){const a=k*Math.PI/6+.26;rivet(tur,ID,[cx+Math.cos(a)*.206,y0+.022,Math.sin(a)*.206],.01);}
   sphere(tur,M(tr(cx,y0+.13,0),sc(.25,.088,.25)),28,10,C.paint);
 }
-export const GUNP=[tr_r(.23)*CA+.05,.23,0];
-export const gun=new Geo();
+const GUNP=[tr_r(.23)*CA+.05,.23,0];
+const gun=new Geo();
 sphere(gun,sc(.082,.082,.082),18,10,C.paint);
 cyl(gun,M(tr(.10,0,0),AX),.05,.042,.14,16,C.paint);
 cyl(gun,M(tr(.25,0,0),AX),.027,.027,.18,12,C.gun,0);
@@ -153,20 +137,31 @@ cyl(gun,M(tr(.40,0,0),AX),.015,.015,.16,10,C.gun,0);
 cyl(gun,M(tr(.485,0,0),AX),.021,.019,.03,10,C.gun,0);
 
 /* ---------- wheels & track link ---------- */
-export const idler=new Geo();
+const idler=new Geo();
 cyl(idler,AZ,.44,.44,.11,40,C.steel,0);cyl(idler,AZ,.40,.40,.128,40,C.wood,0);cyl(idler,AZ,.10,.10,.18,16,C.paint);
 for(let k=0;k<6;k++){const a=k*Math.PI/3;
   for(const s of[-1,1]){box(idler,M(rz(a),tr(.255,0,s*.066)),.30,.036,.008,C.steel,0);
     rivet(idler,ID,[Math.cos(a+.52)*.33,Math.sin(a+.52)*.33,s*.066],.016,C.steel,0);
     rivet(idler,ID,[Math.cos(a)*.14,Math.sin(a)*.14,s*.07],.014,C.steel,0);}}
-export const sprocket=new Geo();
+const sprocket=new Geo();
 cyl(sprocket,AZ,.275,.275,.07,32,C.paint);cyl(sprocket,AZ,.09,.09,.15,14,C.paint);
 for(let k=0;k<16;k++)box(sprocket,M(rz(k*Math.PI/8),tr(.285,0,0)),.06,.05,.085,C.steel,0);
 for(let k=0;k<6;k++){const a=k*Math.PI/3;cyl(sprocket,M(tr(Math.cos(a)*.175,Math.sin(a)*.175,0),AZ),.048,.048,.074,12,C.dark,0);
   for(const s of[-1,1])rivet(sprocket,ID,[Math.cos(a+.52)*.11,Math.sin(a+.52)*.11,s*.077],.012);}
-export const link=new Geo();
+const link=new Geo();
 box(link,ID,PITCH*.94,.022,.34,C.track,0);
 box(link,tr(PITCH*.22,.022,0),.03,.028,.34,C.track,0);
 cyl(link,M(tr(-PITCH*.5,0,0),AZ),.016,.016,.34,6,C.track,0);
 for(const z of[-.088,.088])box(link,tr(0,-.03,z),.07,.04,.026,C.track,0);
 
+return {
+  id:'ft', name:'ルノー FT 軽戦車', eyebrow:'Char léger Renault FT · 1917', sub:'機関銃型(char mitrailleur)・ベルリエ八角砲塔',
+  specs:[['全長','5.00 m(尾橇含む)'],['全幅','1.74 m'],['全高','2.14 m'],['重量','約 6.5 t'],['乗員','2 名'],['武装','オチキス M1914 8 mm'],['機関','ルノー 直4・約 39 hp'],['最高速度','約 7 km/h']],
+  geo:{hull,tur,gun,idler,sprocket,link},
+  IDL,SPR,ZT,TUR,GUNP,path,NL,PITCH,MUZZLE:[.50,0,0],
+  camoOff:{tur:[9.1,3.3,5.7],gun:[2.2,8.4,1.9],idler:[4,4,4],sprocket:[6,1,2]},
+  palette:[[.74,.62,.38],[.27,.35,.21],[.43,.26,.17]],
+  maxHp:100,maxSpeed:2.0,turnRate:.9,fireInterval:1/7.5,weapon:'mg',turretRate:1.1,
+  flyY:.32,camDist:8.2,
+};
+}
