@@ -1,7 +1,7 @@
 // input.js — キーボードと画面ボタンを同じアクション名に束ねる
 const KEYMAP={
-  KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',
-  KeyQ:'turL',KeyE:'turR',KeyR:'elvUp',KeyF:'elvDn',Space:'fire',KeyH:'hit',Enter:'reset',KeyC:'camo',KeyV:'view',KeyX:'auto',
+  KeyW:'fwd',KeyS:'back',KeyA:'left',KeyD:'right',ArrowLeft:'mgL',ArrowRight:'mgR',ArrowUp:'mgUp',ArrowDown:'mgDn',KeyG:'fireMG',KeyJ:'hitMG',
+  KeyQ:'turL',KeyE:'turR',KeyR:'elvUp',KeyF:'elvDn',Space:'fire',KeyH:'hit',Enter:'reset',KeyC:'camo',KeyV:'view',KeyX:'auto',KeyT:'veh',
 };
 export class Input{
   constructor(){

@@ -9,7 +9,7 @@ void main(){vec4 w=uM*vec4(aP,1.);vW=w.xyz;vL=aP;vN=mat3(uM)*aN;vC=aC;vS=uLVP*w;
 const FS=`#version 300 es
 precision highp float;precision highp sampler2DShadow;
 in vec3 vW,vL,vN;in vec4 vC,vS;
-uniform vec3 uLight,uEye,uOff,uBg,uGcol,uEmis;uniform vec2 uCenter;
+uniform vec3 uLight,uEye,uOff,uBg,uGcol,uEmis,uPal[3];uniform vec2 uCenter;
 uniform float uCamo,uGround,uEmisK,uBurn,uEmisA;uniform sampler2DShadow uSh;
 out vec4 o;
 float h3(vec3 p){p=fract(p*.3183099+vec3(.1,.2,.3));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
@@ -19,7 +19,7 @@ float vn(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
 float fb(vec3 p){return vn(p)*.68+vn(p*2.3+5.1)*.32;}
 vec3 camo(vec3 p){p=p*1.9+uOff;float a=fb(p),b=fb(p+17.3),c=fb(p+41.9)*.96;
  float m=max(a,max(b,c)),lo=min(a,min(b,c)),md=a+b+c-m-lo;
- vec3 col=m==a?vec3(.74,.62,.38):(m==b?vec3(.27,.35,.21):vec3(.43,.26,.17));
+ vec3 col=m==a?uPal[0]:(m==b?uPal[1]:uPal[2]);
  return mix(vec3(.07,.07,.06),col,smoothstep(.012,.02,m-md));}
 float shadow(){vec3 s=vS.xyz/vS.w*.5+.5;if(s.x<0.||s.x>1.||s.y<0.||s.y>1.||s.z>1.)return 1.;
  float r=0.,t=1./2048.;for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)r+=texture(uSh,vec3(s.xy+vec2(i,j)*t,s.z-.0022));return r/9.;}
@@ -88,7 +88,7 @@ export class Renderer{
   resize(){const cv=this.cv,r=Math.min(devicePixelRatio||1,2),w=Math.round(cv.clientWidth*r),h=Math.round(cv.clientHeight*r);
     if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}}
   /** items: [{mesh,mat,off,emis,emisK,burn}], particles: [{pos,size,color}] */
-  draw({items,particles,eye,target,center,bg,gcol,camo}){
+  draw({items,particles,eye,target,center,bg,gcol,camo,palette}){
     const gl=this.gl,cv=this.cv,P=this.P,D=this.D;this.resize();
     const LVP=mul(ortho(-3.8,3.8,-3.2,3.2,1,26),lookAt([target[0]+LDIR[0]*13,target[1]+LDIR[1]*13,target[2]+LDIR[2]*13],target,[0,1,0]));
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
@@ -104,7 +104,7 @@ export class Renderer{
     const VP=mul(persp(Math.min(fov,1.25),asp,.2,90),lookAt(eye,target,[0,1,0]));
     gl.useProgram(P.p);gl.uniformMatrix4fv(P.u.uVP,false,VP);gl.uniformMatrix4fv(P.u.uLVP,false,LVP);
     gl.uniform3fv(P.u.uLight,LDIR);gl.uniform3fv(P.u.uEye,eye);gl.uniform3fv(P.u.uBg,bg);gl.uniform3fv(P.u.uGcol,gcol);
-    gl.uniform2fv(P.u.uCenter,center);gl.uniform1f(P.u.uCamo,camo);
+    gl.uniform2fv(P.u.uCenter,center);gl.uniform1f(P.u.uCamo,camo);gl.uniform3fv(P.u['uPal[0]'],palette.flat());
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.shTex);gl.uniform1i(P.u.uSh,0);
     gl.uniform1f(P.u.uGround,0);gl.uniform1f(P.u.uEmisK,0);
     for(const it of items){gl.uniformMatrix4fv(P.u.uM,false,it.mat);gl.uniform3fv(P.u.uOff,it.off||[0,0,0]);
