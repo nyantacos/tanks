@@ -2,6 +2,7 @@
 import {xf} from "./math.js";
 import {buildFT} from "./model.js";
 import {buildChiHa} from "./chiha.js";
+import {buildPanzer1} from "./panzer1.js";
 import {Renderer} from "./renderer.js";
 import {Input} from "./input.js";
 import {Effects} from "./effects.js";
@@ -12,7 +13,7 @@ const $=id=>document.getElementById(id);
 const cv=$('c');
 let R;try{R=new Renderer(cv);}catch(e){$('err').style.display='flex';throw e;}
 /* ---- vehicles ---- */
-const VEHICLES=[{build:buildFT},{build:buildChiHa}];
+const VEHICLES=[{build:buildFT},{build:buildChiHa},{build:buildPanzer1}];
 function vehicle(i){const e=VEHICLES[i];if(!e.v){e.v=e.build();e.meshes={};for(const k in e.v.geo)e.meshes[k]=R.mesh(e.v.geo[k]);}return e;}
 let cur=vehicle(0),meshes=cur.meshes;
 
@@ -26,6 +27,7 @@ function selectVehicle(i){cur=vehicle(i);meshes=cur.meshes;tank.setVehicle(cur.v
   $('lblElev').textContent=g?'主砲':'機銃';$('bFire').textContent=g?'● 主砲':'● 発砲';
   $('keyMG').textContent=hm?'車体機銃 発砲(連射)':'機銃 発砲(Space と同じ)';
   document.querySelectorAll('.mgOnly').forEach(el=>el.style.display=hm?'':'none');
+  $('tCamo').style.display=cur.v.plain?'none':'';
   document.querySelectorAll('[data-veh]').forEach((b,k)=>b.setAttribute('aria-pressed',k===i));}
 document.querySelectorAll('[data-veh]').forEach((b,i)=>b.addEventListener('click',()=>selectVehicle(i)));
 input.on('gesture',()=>{sfx.ensure();sfx.resume();});
@@ -100,7 +102,7 @@ function frame(t){
   const asp=cv.clientWidth/cv.clientHeight,dd=cam.dist*(asp<1?1+(1-asp)*.8:1),cp=Math.cos(cam.pitch);
   const eye=[target[0]+dd*cp*Math.cos(yaw),target[1]+dd*Math.sin(cam.pitch),target[2]+dd*cp*Math.sin(yaw)];
   const bg=dark.matches?[.098,.102,.106]:[.863,.847,.808],gcol=dark.matches?[.26,.25,.235]:[.74,.722,.68];
-  R.draw({items:tank.items(meshes),particles:fx.render(),eye,target,center:[tank.pos[0],tank.pos[2]],bg,gcol,camo:cam.camo,palette:tank.v.palette});
+  R.draw({items:tank.items(meshes),particles:fx.render(),eye,target,center:[tank.pos[0],tank.pos[2]],bg,gcol,camo:tank.v.plain?0:cam.camo,palette:tank.v.palette});
   hud();requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

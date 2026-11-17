@@ -35,7 +35,7 @@ export class Tank{
       this.pos[0]+=f[0]*this.speed*dt;this.pos[2]+=f[2]*this.speed*dt;
       this.dist+=this.speed*dt;for(const s of[-1,1])this.sd[s]+=-s*this.yawRate*.85*dt;   // 旋回時は左右の履帯速度が違う
       this.turret=((this.turret+input.axis('turR','turL')*this.v.turretRate*dt+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
-      this.elev=clamp(this.elev+input.axis('elvDn','elvUp')*.7*dt,this.v.elevMin*Math.PI/180,this.v.elevMax*Math.PI/180);
+      this.elev=clamp(this.elev+input.axis('elvDn','elvUp')*.7*dt,(this.v.elevMin??-15)*Math.PI/180,(this.v.elevMax??30)*Math.PI/180);
       if(input.held('fire')&&this.fireCd<=0){this.fireCd=this.fireInterval;this.fire(fx,sfx);}
       const h=this.v.hullMG;this.mgCd=Math.max(0,this.mgCd-dt);
       if(h){this.mgYaw=clamp(this.mgYaw+input.axis('mgR','mgL')*.8*dt,-h.yawMax,h.yawMax);
