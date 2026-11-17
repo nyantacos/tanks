@@ -162,6 +162,6 @@ return {
   camoOff:{tur:[9.1,3.3,5.7],gun:[2.2,8.4,1.9],idler:[4,4,4],sprocket:[6,1,2]},
   palette:[[.74,.62,.38],[.27,.35,.21],[.43,.26,.17]],
   maxHp:100,maxSpeed:2.0,turnRate:.9,fireInterval:1/7.5,weapon:'mg',turretRate:1.1,
-  flyY:.32,camDist:8.2,
+  flyY:.32,camDist:8.2,elevMin:-20,elevMax:35,
 };
 }
