@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ルノー FT 3Dモデル</title>
+<style>
+:root{
+  --bg:#dcd8ce; --ink:#23221f; --mute:#6b675e; --line:rgba(35,34,31,.16);
+  --card:rgba(244,241,234,.80); --accent:#7a4a22; --on:#23221f; --onink:#f3f0e8;
+  --ok:#4f7a3a; --warn:#b8862a; --crit:#b23a2a;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#191a1b; --ink:#ece8df; --mute:#9a968c; --line:rgba(236,232,223,.16);
+    --card:rgba(32,33,34,.82); --accent:#d6a56a; --on:#ece8df; --onink:#191a1b;
+    --ok:#7fb35f; --warn:#d9a94a; --crit:#d9574a; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Yu Gothic UI","Noto Sans JP",system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+.hud{position:fixed;left:24px;top:20px;pointer-events:none;max-width:60vw}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{margin:6px 0 2px;font-size:28px;line-height:1.1;font-weight:700;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mute)}
+.hp{margin-top:14px;width:260px;pointer-events:none}
+.hp .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-bottom:4px}
+.hp .lbl b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar div{height:100%;background:var(--ok);transition:width .25s}
+.bar div.warn{background:var(--warn)} .bar div.crit{background:var(--crit)}
+.odo{font-size:11.5px;color:var(--mute);margin-top:6px;font-variant-numeric:tabular-nums}
+#dmg{position:absolute;left:270px;top:40px;font-weight:700;font-size:20px;color:var(--crit);opacity:0}
+#dmg.pop{animation:pop .9s ease-out}
+@keyframes pop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-28px)}}
+.spec{position:fixed;right:24px;top:20px;width:236px;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.spec h2{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--mute);font-weight:600}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;font-size:12px;align-items:center}
+.keys kbd{display:inline-block;font:600 10.5px/1 ui-monospace,Menlo,monospace;padding:4px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;min-width:20px;text-align:center;margin-right:2px}
+.keys span{color:var(--mute)}
+.panel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(900px,calc(100vw - 24px));
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row .lbl{color:var(--mute);margin-right:4px;white-space:nowrap}
+.sep{width:1px;height:22px;background:var(--line);margin:0 6px}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:7px;
+  padding:6px 10px;cursor:pointer;white-space:nowrap;touch-action:none}
+button:hover{border-color:var(--mute)}
+button[aria-pressed=true],button.held{background:var(--on);color:var(--onink);border-color:var(--on)}
+button.fire{border-color:var(--accent);color:var(--accent);font-weight:600}
+button.fire.held{background:var(--accent);color:#fff}
+button.danger{color:var(--crit)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{margin-left:auto;color:var(--mute);font-size:11.5px}
+.pad{display:grid;grid-template-columns:repeat(3,36px);gap:3px}
+.pad button{padding:0;height:30px;font-size:13px}
+.pad .e{visibility:hidden}
+#dead{position:fixed;left:0;right:0;top:18vh;display:none;align-items:flex-start;justify-content:center;pointer-events:none}
+#dead.show{display:flex}
+#dead .box{pointer-events:auto;background:var(--card);border:1px solid var(--crit);border-radius:14px;padding:22px 30px;text-align:center;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:fadein .6s}
+#dead h3{margin:0 0 6px;font-size:34px;color:var(--crit);letter-spacing:.1em}
+#dead p{margin:0 0 14px;color:var(--mute);font-size:13px}
+@keyframes fadein{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+@media (max-width:860px){
+  .spec{display:none} h1{font-size:22px} .hud{left:14px;top:12px;max-width:92vw} .hp{width:200px} #dmg{left:210px;top:28px}
+  .panel{bottom:8px;padding:8px 10px;gap:6px} .hint{display:none} .sep{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="ルノーFT戦車の3Dシミュレーション。ドラッグで視点回転、WASDで走行"></canvas>
+<div class="hud">
+  <div class="eyebrow">Char léger Renault FT · 1917</div>
+  <h1>ルノー FT 軽戦車</h1>
+  <div class="sub">機関銃型(char mitrailleur)・ベルリエ八角砲塔</div>
+  <div class="hp">
+    <div class="lbl"><span>耐久力 · <span id="stat">待機</span></span><b id="hpNum">100 / 100</b></div>
+    <div class="bar"><div id="hpBar"></div></div>
+    <div class="odo" id="odo"></div>
+  </div>
+  <div id="dmg"></div>
+</div>
+<aside class="spec">
+  <h2>キー操作</h2>
+  <div class="keys">
+    <div><kbd>W</kbd><kbd>S</kbd></div><span>前進 / 後退</span>
+    <div><kbd>A</kbd><kbd>D</kbd></div><span>左旋回 / 右旋回</span>
+    <div><kbd>Q</kbd><kbd>E</kbd></div><span>砲塔 左 / 右</span>
+    <div><kbd>R</kbd><kbd>F</kbd></div><span>機銃 上 / 下</span>
+    <div><kbd>Space</kbd></div><span>発砲(押し続けで連射)</span>
+    <div><kbd>H</kbd></div><span>被弾(敵弾が飛来)</span>
+    <div><kbd>X</kbd></div><span>敵砲撃 自動 ON/OFF</span>
+    <div><kbd>C</kbd></div><span>迷彩 切替</span>
+    <div><kbd>V</kbd></div><span>視点 切替</span>
+    <div><kbd>Enter</kbd></div><span>リセット</span>
+  </div>
+</aside>
+<div class="panel">
+  <div class="row">
+    <span class="lbl">走行</span>
+    <div class="pad"><span class="e"></span><button data-k="fwd" aria-label="前進">▲</button><span class="e"></span>
+      <button data-k="left" aria-label="左旋回">◀</button><button data-k="back" aria-label="後退">▼</button><button data-k="right" aria-label="右旋回">▶</button></div>
+    <div class="sep"></div><span class="lbl">砲塔</span>
+    <button data-k="turL">◀ 左</button><button data-k="turR">右 ▶</button>
+    <div class="sep"></div><span class="lbl">機銃</span>
+    <button data-k="elvUp">▲ 上</button><button data-k="elvDn">▼ 下</button>
+    <div class="sep"></div>
+    <button class="fire" data-k="fire">● 発砲</button>
+    <button class="danger" id="bHit">被弾</button>
+    <button id="tAuto" aria-pressed="false">敵砲撃 自動</button>
+    <button id="bReset">リセット</button>
+  </div>
+  <div class="row">
+    <span class="lbl">視点</span>
+    <button data-v aria-pressed="true">斜め前</button><button data-v>側面</button><button data-v>正面</button><button data-v>斜め後ろ</button><button data-v>上面</button>
+    <div class="sep"></div>
+    <button id="tCamo" aria-pressed="true">迷彩</button>
+    <button id="tSnd" aria-pressed="true">音</button>
+    <div class="hint">ドラッグで視点回転 · ホイール/ピンチで拡大縮小 · キー操作は画面をクリックしてから</div>
+  </div>
+</div>
+<div id="dead"><div class="box"><h3>大 破</h3><p id="deadMsg"></p><button id="bReset2">リセット(Enter)</button></div></div>
+<div id="err">この環境では WebGL2 が使えないため、3Dモデルを表示できません。</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
